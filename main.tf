@@ -1,28 +1,21 @@
-provider "multipass" {}
-
-terraform {
-  required_providers {
-    multipass = {
-      source  = "larstobi/multipass"
-      version = "~> 1.4.2"
-    }
-  }
-}
-
-resource "multipass_instance" "galactus" {
+module "galactus" {
+  source = "./modules/multipass_instance"
   name   = "galactus"
   cpus   = 1
   image  = "jammy"
 }
 
-resource "null_resource" "get_ip" {
-  depends_on = [multipass_instance.galactus]
-
-  provisioner "local-exec" {
-    command = "multipass info galactus | grep 'IPv4' | awk '{print $2}'"
-  }
+module "glacius" {
+  source = "./modules/multipass_instance"
+  name   = "glacius"
+  cpus   = 2
+  image  = "jammy"
 }
 
-output "instance_ip" {
-  value = null_resource.get_ip
+output "galactus_ip" {
+  value = module.galactus.instance_ip
+}
+
+output "glasius_ip" {
+  value = module.glacius.instance_ip
 }
