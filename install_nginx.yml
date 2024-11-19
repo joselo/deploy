@@ -1,0 +1,49 @@
+---
+- name: Install Nginx with password
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    nginx_password_file: "./secrets/nginx.key"
+    nginx_password: "{{ lookup('file', nginx_password_file) }}"
+
+  tasks:
+  - name: Install Nginx
+    apt:
+      name: nginx
+      state: latest
+
+  - name: Create Nginx password file if it does not exist
+    command: touch /etc/nginx/.htpasswd
+    args:
+      creates: /etc/nginx/.htpasswd
+
+  - name: Create Nginx password file
+    file:
+      path: /etc/nginx/.htpasswd
+      mode: 0640
+      owner: www-data
+      group: www-data
+
+  - name: Set Nginx password
+    lineinfile:
+      path: /etc/nginx/.htpasswd
+      line: "admin:{{ nginx_password }}"
+      create: yes
+      owner: www-data
+      group: www-data
+      mode: '0640'
+
+  - name: Configure Nginx to use password file
+    template:
+      src: templates/nginx.conf.j2
+      dest: /etc/nginx/nginx.conf
+      mode: 0640
+      owner: www-data
+      group: www-data
+
+  - name: Restart Nginx
+    service:
+      name: nginx
+      state: restarted
