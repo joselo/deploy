@@ -1,0 +1,31 @@
+---
+- name: Deploy Docker Registry with Docker Compose
+  hosts: all
+  become: yes
+  vars:
+    compose_file_path: /home/{{ ansible_user }}/docker-compose.yml
+  tasks:
+    - name: Ensure Docker Compose is installed
+      command: docker-compose --version
+      ignore_errors: no
+
+    - name: Copy docker-compose.yml to the server
+      copy:
+        src: ./templates/docker-compose.yml
+        dest: "{{ compose_file_path }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Change working directory and run Docker Compose
+      shell: |
+        docker-compose up -d
+      args:
+        chdir: /home/{{ ansible_user }}
+
+    - name: Verify registry is running
+      shell: |
+        docker ps --filter "name=registry"
+      register: registry_status
+      failed_when: "'registry' not in registry_status.stdout"
+
