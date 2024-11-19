@@ -10,3 +10,14 @@ Ping to the galactus machine:
 # Ansible gallery
 
     ansible-galaxy collection install community.crypto
+
+
+# Docker commands
+
+Build a docker image
+
+    docker tag blogx:latest galactus.test:8000/blogx:latest
+
+Push the image to the registry
+
+    docker push galactus.test:8000/blogx:latest
