@@ -1,0 +1,69 @@
+---
+- name: Install and configure PostgreSQL
+  hosts: all
+  become: yes
+
+  vars:
+    postgres_version: 16          # Change to the desired PostgreSQL version
+    listen_addresses: '*'         # Set to '*' to allow remote connections
+
+  tasks:
+    - name: Add PostgreSQL official repository
+      ansible.builtin.apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      ansible.builtin.apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+        filename: "pgdg.list"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install PostgreSQL 15
+      ansible.builtin.apt:
+        name: "postgresql-{{ postgres_version }}"
+        state: present
+
+    - name: Ensure PostgreSQL service is running
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Allow remote connections (if required)
+      lineinfile:
+        path: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+        regexp: '^#?host\s+all\s+all\s+0.0.0.0/0\s+md5$'
+        line: 'host all all 0.0.0.0/0 md5'
+        state: present
+      register: pg_hba_conf_updated
+
+    - name: Allow password authentication
+      lineinfile:
+        path: /etc/postgresql/{{ postgres_version }}/main/postgresql.conf
+        regexp: '^#?listen_addresses\s*=\s*''.*''$'
+        line: "listen_addresses = '*'"
+        state: present
+      register: postgresql_conf_updated
+
+    - name: Restart PostgreSQL if configuration has changed
+      meta: flush_handlers
+
+  handlers:
+    - name: Restart PostgreSQL
+      service:
+        name: postgresql
+        state: restarted
+      listen:
+        - "handler_name"
+
+  # handlers:
+  #   - name: Restart PostgreSQL
+  #     service:
+  #       name: postgresql
+  #       state: restarted
+  #

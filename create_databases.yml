@@ -1,0 +1,35 @@
+---
+- name: Install and configure PostgreSQL
+  hosts: all
+  become: yes
+
+  vars_files:
+  - secrets/database_vars.yml
+
+  tasks:
+    # Ensure the PostgreSQL user exists
+    - name: Create PostgreSQL user if not exists
+      ansible.builtin.shell: |
+        sudo -u postgres psql -c "DO \$\$ BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ postgres_user }}') THEN
+            CREATE ROLE {{ postgres_user }} LOGIN PASSWORD '{{ postgres_password }}';
+          END IF;
+        END \$\$;"
+      args:
+        warn: false
+
+
+    # Ensure the PostgreSQL database exists
+    - name: Create PostgreSQL database if not exists
+      ansible.builtin.shell: |
+        sudo -u postgres psql -tc "SELECT 1 FROM pg_catalog.pg_database WHERE datname = '{{ postgres_db }}';" | grep -q 1 || \
+        sudo -u postgres psql -c "CREATE DATABASE {{ postgres_db }} OWNER {{ postgres_user }};"
+      args:
+        warn: false
+
+    # Ensure the PostgreSQL user has access to the database
+    - name: Grant privileges to PostgreSQL user on the database
+      ansible.builtin.shell: |
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ postgres_db }} TO {{ postgres_user }};"
+      args:
+        warn: false
