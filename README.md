@@ -21,3 +21,19 @@ Build a docker image
 Push the image to the registry
 
     docker push galactus.test:8000/blogx:latest
+
+
+# Docker registry commands
+
+
+List the images
+
+    http://galactus.test:8000/v2/blogx/tags/list
+
+
+# Deploy images
+
+
+Download the image
+
+    sudo docker pull localhost:5000/blogx:latest
